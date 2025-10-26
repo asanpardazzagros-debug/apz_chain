@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "apz-node.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "apz-node.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "apz-node.name" . }}
+    spec:
+      containers:
+        - name: apz-node
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: CHAIN_ID
+              value: "{{ .Values.node.env.CHAIN_ID }}"
+            - name: NODE_MONIKER
+              value: "{{ .Values.node.env.NODE_MONIKER }}"
+          ports:
+            - containerPort: 26656
+            - containerPort: 26657
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/apz
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "apz-node.fullname" . }}-pvc
