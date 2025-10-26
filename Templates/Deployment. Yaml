@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "apz-indexer.fullname" . }}
+  labels:
+    app: {{ include "apz-indexer.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "apz-indexer.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "apz-indexer.name" . }}
+    spec:
+      containers:
+        - name: apz-indexer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: API_URL
+              value: {{ .Values.env.API_URL | quote }}
+            - name: DATABASE_URL
+              value: {{ .Values.env.DATABASE_URL | quote }}
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/apz-indexer
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "apz-indexer.fullname" . }}-pvc
