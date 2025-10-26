@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  contracts:
+    name: Contracts tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - name: Install deps
+        run: npm ci
+      - name: Run tests
+        run: npm run test
+      - name: Run coverage
+        run: npm run coverage
+
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./apps/api
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: apz
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - name: Install deps
+        run: npm ci
+      - name: Wait for Postgres
+        run: until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/apz
+        run: npm run test
+
+  linter:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run linters
+        run: |
+          npm --prefix contracts ci
+          npm --prefix contracts run lint || true
+          npm --prefix apps/api ci
+          npm --prefix apps/api run lint || true
