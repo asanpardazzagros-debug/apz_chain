@@ -1,0 +1,3 @@
+pm2 list
+pm2 logs apz-api
+pm2 logs apz-web
